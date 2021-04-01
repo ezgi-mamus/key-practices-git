@@ -1,0 +1,43 @@
+getwd()
+setwd('C:/Users/olfaction laptop 02/Desktop/SoMo/somo_analiz2021')
+
+# install.packages("")
+
+library(lme4)
+library(lattice)
+library(plyr) # for count # it is good to load plyr before dplyr
+library(dplyr) # for mutate()
+library(lmerTest) #for p values
+library(car) #for recode()
+library(data.table)
+library(ggplot2)
+library(reshape2)
+library(tidyr)
+library(ggbeeswarm) #for geom_quasirandom
+
+##### load the raw data and merge with participant info ####
+
+rawdata <- read.csv(file="rawspeech.csv", header=TRUE, sep=";")
+ppinfo <- read.csv(file="participantinfo.csv", header=TRUE, sep=";")
+
+# select only rows for motion events
+data_motiononly <- rawdata %>% filter(grepl("M",Stim_type_ID)) %>%mutate(Ss=as.factor(Ss), Relevancy=as.factor(Relevancy))
+ppinfo <- ppinfo %>%mutate(Ss=as.factor(Ss), Group=as.factor(Group), List=as.factor(List))
+
+#adding Group and List info - merging the files using _join function
+data_motiononly <- left_join(data_motiononly, ppinfo, by = c("Ss"))
+
+#replacing NAs with 0s because otherwise it causes problems during calculations
+data_motiononly[is.na(data_motiononly)] <- 0
+
+# filtering the data for relevant clauses
+RELdata_motion <- data_motiononly %>% select(Ss,Group,List,Stim_type_ID,Relevancy,Source,BodySource,SpatialSource, 
+                                             DeicticSource,Goal,BodyGoal,SpatialGoal,DeicticGoal,
+                                             Path_lightverb,Path_specificvb,Manner_adv,Manner_verb,Manner_oth, 
+                                             pathtotal,mannertotal,allsource,allgoal,alllandmark,objlandmark,
+                                             bodylandmark,spatiallandmark,deicticlandmark) %>% filter(Relevancy == "1")
+
+RELdata_motion <- RELdata_motion %>% mutate(Ss=as.factor(Ss))
+
+#save the data with relevant clauses
+write.csv(RELdata_motion, file = "RELspeechdata_motion.csv", row.names = F)
